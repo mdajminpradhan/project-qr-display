@@ -5,6 +5,10 @@ import { open } from "sqlite";
 export async function POST(request) {
   const data = await request.json();
 
+  // Parse the Text field from the input
+  const parsedData = JSON.parse(data.Text);
+
+  // Open SQLite database
   const db = await open({
     filename: "/tmp/qrdisplay.db",
     driver: sqlite3.Database,
@@ -33,8 +37,8 @@ export async function POST(request) {
   // Insert main tree record
   const treeResult = await db.run(
     "INSERT INTO trees (label, desc) VALUES (?, ?)",
-    data.label,
-    data.desc
+    "Default Label", // Use default label since not provided in the data
+    "Default Description" // Use default description since not provided
   );
   const treeId = treeResult.lastID;
 
@@ -43,11 +47,13 @@ export async function POST(request) {
     "INSERT INTO tree_data (tree_id, name, value) VALUES (?, ?, ?)"
   );
 
-  for (const item of data.data) {
-    await insertDataStmt.run(treeId, item.name, item.value);
+  for (const [name, value] of parsedData) {
+    await insertDataStmt.run(treeId, name, value);
   }
 
   await insertDataStmt.finalize();
+
+  console.log("hey");
 
   return NextResponse.json(
     { msg: "Data inserted successfully" },

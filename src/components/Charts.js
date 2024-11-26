@@ -2,15 +2,18 @@
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 
+// Dynamically import the Chart component
 const Chart = dynamic(() => import("./Chart"), { ssr: false });
 
 const Charts = () => {
   const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchChartData = async () => {
     try {
       const response = await fetch("/api/get-data"); // Replace with your API endpoint
       const responseData = await response.json();
+
       console.log("🚀 ~ fetchChartData ~ responseData:", responseData);
 
       if (responseData.records && Array.isArray(responseData.records)) {
@@ -23,26 +26,25 @@ const Charts = () => {
           })),
         }));
 
-        // Replace state with the new data
         setChartData(formattedData);
       } else {
         console.error("Unexpected response structure:", responseData);
-        setChartData([]); // Reset state if structure is invalid
+        setChartData([]);
       }
     } catch (error) {
       console.error("Error fetching chart data:", error);
-      setChartData([]); // Reset state on error
+      setChartData([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Fetch data every 5 seconds
-    const interval = setInterval(() => {
-      fetchChartData();
-    }, 5000);
-
     // Initial fetch
     fetchChartData();
+
+    // Fetch data every 5 seconds
+    const interval = setInterval(fetchChartData, 5000);
 
     // Cleanup interval on component unmount
     return () => clearInterval(interval);
@@ -52,9 +54,11 @@ const Charts = () => {
 
   return (
     <div className="w-4/5 mx-auto my-10">
-      <h1 className="text-xl">All Charts</h1>
+      <h1 className="text-xl font-bold">All Charts</h1>
 
-      {chartData?.length > 0 ? (
+      {loading ? (
+        <p className="text-center mt-20">Loading charts...</p>
+      ) : chartData.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {chartData.map((chart, index) => (
             <Chart

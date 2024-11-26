@@ -9,8 +9,8 @@ export async function GET() {
   });
 
   // Query to fetch all data ordered by created_at DESC
-  const trees = await db.all(`
-    SELECT 
+  const rows = await db.all(`
+    SELECT
       t.id AS treeId,
       t.label,
       t.desc,
@@ -22,8 +22,8 @@ export async function GET() {
     ORDER BY t.created_at DESC
   `);
 
-  // Format data into a structured response
-  const formattedData = trees.reduce((acc, row) => {
+  // Format the data into a structured JSON response
+  const formattedData = rows.reduce((acc, row) => {
     let tree = acc.find((t) => t.treeId === row.treeId);
     if (!tree) {
       tree = {
@@ -35,10 +35,12 @@ export async function GET() {
       };
       acc.push(tree);
     }
-    tree.data.push({
-      name: row.name,
-      value: row.value,
-    });
+    if (row.name && row.value !== null) {
+      tree.data.push({
+        name: row.name,
+        value: row.value,
+      });
+    }
     return acc;
   }, []);
 
