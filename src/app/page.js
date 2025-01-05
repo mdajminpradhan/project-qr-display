@@ -1,14 +1,17 @@
-import Charts from "@/components/Charts";
-import Header from "@/components/Header";
-import React from "react";
+"use client";
+import { useState } from "react";
+import Header from "../components/Header";
+import Charts from "../components/Charts";
 
-const page = () => {
+const Page = () => {
+  const [allRecords, setAllRecords] = useState([]);
+
   return (
     <div>
-      <Header />
-      <Charts />
+      <Header allRecords={allRecords} />
+      <Charts setAllRecords={setAllRecords} />
     </div>
   );
 };
 
-export default page;
+export default Page;
