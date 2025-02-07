@@ -10,13 +10,14 @@ const Charts = ({ setAllRecords }) => {
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchChartData = async () => {
+  const fetchData = async () => {
     try {
-      const response = await axios.get("http://localhost:5001/get-data"); // Replace with your API endpoint
-      setChartData(response.data);
-      setAllRecords(response.data);
+      const response = await fetch("http://localhost:5500/get-data"); // Updated port
+      const data = await response.json();
+      setChartData(data);
+      setAllRecords(data);
     } catch (error) {
-      console.error("Error fetching chart data:", error);
+      console.error("Error fetching data:", error);
       setChartData([]);
     } finally {
       setLoading(false);
@@ -25,10 +26,10 @@ const Charts = ({ setAllRecords }) => {
 
   useEffect(() => {
     // Initial fetch
-    fetchChartData();
+    fetchData();
 
     // Fetch data every 5 seconds
-    const interval = setInterval(fetchChartData, 5000);
+    const interval = setInterval(fetchData, 5000);
 
     // Cleanup interval on component unmount
     return () => clearInterval(interval);
@@ -36,7 +37,7 @@ const Charts = ({ setAllRecords }) => {
 
   return (
     <div className="w-4/5 mx-auto my-10">
-      <h1 className="text-xl font-bold">All Charts</h1>
+      <h1 className="text-xl font-bold">图表展示</h1>
 
       {loading ? (
         <p className="text-center mt-20">Loading charts...</p>
@@ -45,9 +46,13 @@ const Charts = ({ setAllRecords }) => {
           {chartData?.length > 0 &&
             chartData?.map((chart, index) => (
               <div key={index}>
-                <h2 className="text-lg font-semibold mb-2">{`Record ${
-                  index + 1
-                }`}</h2>
+                <h2 className="text-lg font-semibold mb-2">
+                  {chart.treeId ? (
+                    <span>树的标号: {chart.treeId}</span>
+                  ) : (
+                    `Record ${index + 1}`
+                  )}
+                </h2>
                 <Chart chartData={chart} />
               </div>
             ))}

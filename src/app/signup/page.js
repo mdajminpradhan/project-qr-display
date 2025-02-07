@@ -1,27 +1,19 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 "use client"; // Ensures client-side functionality for React
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import ImageJpeg from "../../assets/image.jpg";
 
-const page = () => {
+const SignupPage = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isOrangeLoggedIn") === "true";
-    if (isLoggedIn) {
-      router.push("/");
-    }
-  }, [router]);
-
-  const handleLogin = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
 
-    const response = await fetch("http://localhost:5500/login", {
+    const response = await fetch("http://localhost:5500/signup", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -30,14 +22,17 @@ const page = () => {
     });
 
     if (response.ok) {
-      localStorage.setItem("isOrangeLoggedIn", "true");
-      router.push("/");
+      alert("User registered successfully!");
+      router.push("/login");
     } else {
-      alert("Wrong email or password!");
+      const errorData = await response.json(); // Get the error message from the response
+      if (errorData.error === "Email already exists") {
+        alert("该电子邮件已被注册，请使用其他电子邮件。"); // Display a specific message for already registered email
+      } else {
+        alert(errorData.error || "Registration failed!"); // Display the error message
+      }
     }
   };
-
-  const backgroundImage = "url('/images/image.jpg')"; // Ensure this is static
 
   return (
     <section className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -62,9 +57,9 @@ const page = () => {
         <div className="w-full bg-white rounded-lg shadow dark:border dark:bg-gray-800 dark:border-gray-700">
           <div className="p-6 space-y-4 sm:p-8">
             <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-              登录您的账户
+              注册新账户
             </h1>
-            <form className="space-y-4" onSubmit={handleLogin}>
+            <form className="space-y-4" onSubmit={handleSignup}>
               <div>
                 <label
                   htmlFor="email"
@@ -103,16 +98,16 @@ const page = () => {
               </div>
               <button
                 type="submit"
-                className="w-full text-white bg-amber-400 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 mb-2"
+                className="w-full text-white bg-amber-400 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
               >
-                登录
+                注册
               </button>
 
               <Link
-                href="/signup"
+                href="/login"
                 className="text-sm text-blue-500 hover:underline text-center mt-2 block"
               >
-                没有账户？点击这里报名
+                已有账户？点击这里登录
               </Link>
             </form>
           </div>
@@ -121,10 +116,14 @@ const page = () => {
 
       {/* Right Column: Image */}
       <div className="hidden lg:flex w-full lg:w-1/2">
-        <img src="/images/image.jpg" alt="background" className="w-full h-screen object-cover" />
+        <img
+          src="/images/image.jpg"
+          alt="background"
+          className="w-full h-screen object-cover"
+        />
       </div>
     </section>
   );
 };
 
-export default page;
+export default SignupPage;

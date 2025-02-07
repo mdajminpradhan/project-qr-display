@@ -27,9 +27,9 @@ const Chart = ({ chartData }) => {
         const parseData = JSON.parse(chartData.orangeData);
 
         // Transform object to array of { name, value }
-        const formattedData = Object.keys(parseData).map((key) => ({
+        const formattedData = Object.entries(parseData).map(([key, value]) => ({
           name: key,
-          value: parseData[key],
+          value: parseFloat(value),
         }));
 
         setShowBarData(formattedData);
@@ -45,6 +45,24 @@ const Chart = ({ chartData }) => {
       return;
     }
 
+    // Create PDF without Chinese font support
+    const doc = new jsPDF();
+
+    // Use English for all text to ensure compatibility
+    doc.setFontSize(16);
+    doc.text("Disease Analysis Report", 14, 20);
+
+    // Add Tree ID and timestamp on the next line
+    doc.setFontSize(12);
+    const treeIdText = chartData.treeId
+      ? `Tree ID: ${chartData.treeId}`
+      : "No Tree ID";
+    const timestampText = chartData.timestamp
+      ? new Date(chartData.timestamp).toLocaleString()
+      : "No date";
+    doc.text(`${treeIdText} - ${timestampText}`, 14, 30);
+
+    // Set up cure points
     const curePoints = {
       "Citrus leafminer": [
         "1. Apply neem oil spray.",
@@ -63,7 +81,7 @@ const Chart = ({ chartData }) => {
       ],
     };
 
-    // Determine the row with the maximum value
+    // Determine the row with the maximum value BEFORE preparing table data
     const maxEntry = barData.reduce(
       (max, entry) => (entry.value > max.value ? entry : max),
       { name: "", value: -Infinity }
@@ -74,66 +92,65 @@ const Chart = ({ chartData }) => {
       const howToCure =
         entry.name === maxEntry.name
           ? curePoints[entry.name]?.join("\n") || "No cure points available"
-          : ""; // Add cure points only for the maximum value
+          : "";
 
       return {
         Name: entry.name,
         Value: entry.value,
-        "How to Cure": howToCure,
+        Suggestions: howToCure,
       };
     });
 
-    // Generate QR code data (summarizing all report data)
-    const qrCodeData = tableData
-      .map(
-        (row) =>
-          `Name: ${row.Name}\nValue: ${row.Value}\nCure Points:\n${row["How to Cure"]}`
-      )
-      .join("\n\n");
-
-    const qrCodeImage = await QRCode.toDataURL(qrCodeData);
-
-    // Generate the PDF
-    const doc = new jsPDF();
-
-    // Add a title
-    doc.setFontSize(16);
-    doc.text("Chart Data with Cure Points", 14, 20);
-
-    // Add the table
+    // Add the table with English headers
     autoTable(doc, {
-      head: [["Name", "Value", "How to Cure"]],
-      body: tableData.map((row) => [row.Name, row.Value, row["How to Cure"]]),
-      startY: 30,
+      head: [["Disease Name", "Value (%)", "Treatment Suggestions"]],
+      body: tableData.map((row) => [
+        row.Name,
+        row.Value.toFixed(2),
+        row["Suggestions"],
+      ]),
+      startY: 40,
       styles: {
         fontSize: 10,
         cellPadding: 4,
         overflow: "linebreak",
       },
       columnStyles: {
-        0: { cellWidth: 50, textColor: "#0088FE", fillColor: "#E0F7FA" }, // First column (Name)
-        1: { cellWidth: 30, textColor: "#FF8042", fillColor: "#FFF3E0" }, // Second column (Value)
-        2: { cellWidth: 80, textColor: "#FFBB28", fillColor: "#FFF9C4" }, // Third column (How to Cure)
+        0: { cellWidth: 50, textColor: "#0088FE", fillColor: "#E0F7FA" },
+        1: { cellWidth: 30, textColor: "#FF8042", fillColor: "#FFF3E0" },
+        2: { cellWidth: 80, textColor: "#FFBB28", fillColor: "#FFF9C4" },
       },
     });
 
-    // Add QR code at the bottom of the same page
-    const pageHeight = doc.internal.pageSize.height;
-    const lastY = doc.lastAutoTable.finalY || 30; // Get the last Y position after the table
+    // Generate QR code data
+    const qrCodeData = tableData
+      .map(
+        (row) =>
+          `Disease: ${row.Name}\nValue: ${row.Value.toFixed(2)}%\nTreatment:\n${
+            row["Suggestions"]
+          }`
+      )
+      .join("\n\n");
 
-    // Ensure there is enough space for the QR code
+    const qrCodeImage = await QRCode.toDataURL(qrCodeData);
+
+    // Add QR code at the bottom
+    const pageHeight = doc.internal.pageSize.height;
+    const lastY = doc.lastAutoTable.finalY || 30;
     const qrCodeY = lastY + 20;
+
     if (qrCodeY + 60 > pageHeight) {
       doc.addPage();
-      doc.text("Scan this QR code to view the report summary:", 14, 20);
-      doc.addImage(qrCodeImage, "PNG", 14, 30, 50, 50); // Adjust size and position
+      doc.text("Scan QR code for quick access:", 14, 20);
+      doc.addImage(qrCodeImage, "PNG", 14, 30, 50, 50);
     } else {
-      doc.text("Scan this QR code to view the report summary:", 14, qrCodeY);
-      doc.addImage(qrCodeImage, "PNG", 14, qrCodeY + 10, 50, 50); // Adjust size and position
+      doc.text("Scan QR code for quick access:", 14, qrCodeY);
+      doc.addImage(qrCodeImage, "PNG", 14, qrCodeY + 10, 50, 50);
     }
 
-    // Save the PDF
-    doc.save("chart-data-with-cures-and-qr.pdf");
+    // Save the PDF with a timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    doc.save(`disease-analysis-${timestamp}.pdf`);
   };
 
   // Determine the maximum value for coloring
@@ -141,13 +158,18 @@ const Chart = ({ chartData }) => {
 
   return (
     <div className="mt-5 border p-4 rounded-md bg-white">
-      <p className="text-sm text-gray-600 mb-4">
-        {chartData.timestamp
-          ? `Date and Time: ${dayjs(chartData.timestamp).format(
-              "YYYY-MM-DD HH:mm:ss"
-            )}`
-          : "No date and time was provided"}
-      </p>
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-600">
+          {chartData.timestamp
+            ? `日期和时间: ${dayjs(chartData.timestamp).format(
+                "YYYY-MM-DD HH:mm:ss"
+              )}`
+            : "No date and time was provided"}
+          {chartData.treeId && (
+            <span className="ml-4">树的标号: {chartData.treeId}</span>
+          )}
+        </p>
+      </div>
       <BarChart
         width={500}
         height={300}
@@ -159,7 +181,7 @@ const Chart = ({ chartData }) => {
           bottom: 5,
         }}
       >
-        <CartesianGrid strokeDasharray="3 3" />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="name" />
         <YAxis />
         <Tooltip />
@@ -199,7 +221,7 @@ const Chart = ({ chartData }) => {
               d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z"
             />
           </svg>
-          Show QR Code
+          形成二维码
         </button>
         <button
           className="mt-2 border border-amber-400 hover:bg-amber-400 hover:text-white w-full py-2 rounded-md flex justify-center items-center"
@@ -219,7 +241,7 @@ const Chart = ({ chartData }) => {
               d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
             />
           </svg>
-          Download Report
+          下载报告
         </button>
       </div>
 

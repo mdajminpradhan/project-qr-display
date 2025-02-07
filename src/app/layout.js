@@ -13,8 +13,8 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "Project QR Display",
-  description: "by Ata Jahangir",
+  title: "Dr Orange",
+  description: "",
 };
 
 export default function RootLayout({ children }) {

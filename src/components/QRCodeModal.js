@@ -21,7 +21,7 @@ const QRCodeModal = ({ isOpen, setIsOpen }) => {
               as="h3"
               className="text-xl text-center font-medium mb-10 border-b pb-2"
             >
-              Scan for details
+              扫一扫查看详情
             </DialogTitle>
 
             <QRCode
@@ -36,7 +36,7 @@ const QRCodeModal = ({ isOpen, setIsOpen }) => {
                 className="bg-amber-400 mt-5 rounded-lg w-full py-2.5 text-white"
                 onClick={() => setIsOpen(null)}
               >
-                Got it, thanks!
+                明白了，谢谢!
               </Button>
             </div>
           </DialogPanel>
